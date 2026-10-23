@@ -14,6 +14,7 @@ import waitlistRoutes from "./routes/waitlistRoutes.js";
 import proposalRoutes from "./routes/proposalRoutes.js";
 import { processExpiredOffers } from "./services/waitlistService.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { getTransporter } from "./services/emailService.js";
 
 import path from "path";
 import { fileURLToPath } from "url";
@@ -109,6 +110,43 @@ app.get("/api/health", (req, res) => {
 
 app.get("/health", (req, res) => {
   res.status(200).json(getHealthStatus());
+});
+
+app.get("/api/email-diagnostics", async (req, res) => {
+  const user = process.env.EMAIL_USER || process.env.SMTP_USER;
+  const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
+
+  if (!user || !pass) {
+    return res.status(200).json({
+      configured: false,
+      error: "EMAIL_USER or EMAIL_PASS environment variable is NOT set in Render environment!",
+      hasUser: Boolean(user),
+      hasPass: Boolean(pass),
+    });
+  }
+
+  try {
+    const transporter = getTransporter();
+    if (!transporter) {
+      return res.status(200).json({ configured: false, error: "Transporter could not be created." });
+    }
+    await transporter.verify();
+    return res.status(200).json({
+      configured: true,
+      verified: true,
+      user: user.replace(/(.{3})(.*)(@.*)/, "$1***$3"),
+      message: "SMTP connected and verified successfully!",
+    });
+  } catch (err) {
+    return res.status(200).json({
+      configured: true,
+      verified: false,
+      user: user.replace(/(.{3})(.*)(@.*)/, "$1***$3"),
+      error: err.message,
+      code: err.code,
+      response: err.response,
+    });
+  }
 });
 
 app.get("/", (req, res) => {

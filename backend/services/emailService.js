@@ -24,7 +24,7 @@ export function getFromAddress() {
   return process.env.EMAIL_FROM || `Gather <${user}>`;
 }
 
-function getTransporter() {
+export function getTransporter() {
   const user = process.env.EMAIL_USER || process.env.SMTP_USER;
   const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
 
