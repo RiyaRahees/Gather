@@ -678,13 +678,13 @@ export async function forgotPassword(req, res) {
       user.resetPasswordExpire = expireTime;
       await user.save();
 
-      // Dispatch password reset email exclusively to the requested user's email
-      const emailResult = await sendPasswordResetEmail({
+      // Dispatch password reset email asynchronously so HTTP response is instant and never hangs
+      sendPasswordResetEmail({
         toEmail: user.email,
         name: user.name,
         otp,
         resetToken: rawToken,
-      });
+      }).catch((err) => console.error("Password reset email dispatch error:", err));
 
       return res.status(200).json({
         success: true,
@@ -707,12 +707,12 @@ export async function forgotPassword(req, res) {
     user.resetPasswordToken = rawToken;
     user.resetPasswordExpire = new Date(Date.now() + 15 * 60 * 1000);
 
-    await sendPasswordResetEmail({
+    sendPasswordResetEmail({
       toEmail: user.email,
       name: user.name,
       otp,
       resetToken: rawToken,
-    });
+    }).catch((err) => console.error("Password reset email dispatch error:", err));
 
     return res.status(200).json({
       success: true,
