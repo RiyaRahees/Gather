@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+:root {
+  --color-ivory: #F7F4ED;
+  --color-card: #FFFEFA;
+  --color-charcoal: #171915;
+  --color-forest: #073F2E;
+  --color-forest-dark: #052F22;
+  --color-forest-light: #0B4F3A;
+  --color-secondary-green: #426B56;
+  --color-sage: #A9C3A0;
+  --color-sage-soft: #EBF3E8;
+  --color-border: #E7E2D8;
+  --color-muted: #77776F;
+
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  --background: #F7F4ED;
+  --foreground: #171915;
+}
+
+body {
+  background-color: #F7F4ED;
+  color: #171915;
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+.font-serif {
+  font-family: "Playfair Display", Georgia, serif !important;
+}
+
+.font-sans {
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.font-numeric,
+.number-font {
+  font-family: "Inter", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum" 1, "tnum" 1;
+}
+
+/* Subtle editorial scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F7F4ED;
+}
+::-webkit-scrollbar-thumb {
+  background: #D8D2C4;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #073F2E;
+}
+
+/* Micro-animations and buttons */
+.btn-forest {
+  background-color: #073F2E;
+  color: #FFFFFF;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-forest:hover {
+  background-color: #052F22;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(7, 63, 46, 0.2);
+}
+
+.btn-secondary {
+  background-color: #FFFFFF;
+  color: #171915;
+  border: 1px solid #E7E2D8;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-secondary:hover {
+  background-color: #F7F4ED;
+  border-color: #073F2E;
+}
+
+/* Circular Arrow Button matching Gatherly reference */
+.circle-arrow-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #073F2E;
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+.circle-arrow-btn:hover {
+  background-color: #052F22;
+  transform: scale(1.08);
+}

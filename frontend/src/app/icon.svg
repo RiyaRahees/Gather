@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Subtle warm ivory background -->
+  <rect width="48" height="48" rx="14" fill="#F7F4ED" />
+  
+  <g transform="translate(4, 4)">
+    <!-- Back sage pebble -->
+    <path
+      d="M 14 14 C 14 6, 26 6, 32 14 C 38 22, 34 32, 26 34 C 18 36, 14 28, 14 14 Z"
+      fill="#8EA996"
+      fill-opacity="0.85"
+    />
+    <!-- Front deep forest green pebble -->
+    <path
+      d="M 6 10 C 6 2, 20 2, 24 10 C 28 18, 24 28, 16 30 C 8 32, 6 22, 6 10 Z"
+      fill="#073F2E"
+    />
+  </g>
+</svg>

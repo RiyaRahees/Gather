@@ -1,0 +1,13 @@
+{
+  "name": "gather",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gather — Curated Event & Workshop Platform",
+  "scripts": {
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev": "npm run dev --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "seed": "npm run seed --prefix backend"
+  }
+}
