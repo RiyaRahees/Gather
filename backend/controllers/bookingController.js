@@ -36,7 +36,10 @@ export async function createBooking(req, res) {
       return res.status(400).json({ error: "Must book at least 1 seat." });
     }
 
-    if (!attendeeName || !attendeeEmail) {
+    const finalAttendeeEmail = (req.user?.email || attendeeEmail || "").trim().toLowerCase();
+    const finalAttendeeName = (attendeeName || req.user?.name || "Attendee").trim();
+
+    if (!finalAttendeeName || !finalAttendeeEmail) {
       return res.status(400).json({ error: "Attendee name and email are required." });
     }
 
@@ -94,8 +97,8 @@ export async function createBooking(req, res) {
           user: userId,
           event: event._id,
           seatsBooked: seats,
-          attendeeName: attendeeName.trim(),
-          attendeeEmail: attendeeEmail.trim().toLowerCase(),
+          attendeeName: finalAttendeeName,
+          attendeeEmail: finalAttendeeEmail,
           amount: 0,
           currency: "INR",
           bookingStatus: "confirmed",
@@ -118,28 +121,24 @@ export async function createBooking(req, res) {
           console.error("Failed to issue tickets for free booking:", tErr);
         }
 
-        // Send confirmation email with QR ticket and cancellation link
-        try {
-          await sendBookingConfirmation({
-            toEmail: attendeeEmail.trim().toLowerCase(),
-            attendeeName: attendeeName.trim(),
-            eventTitle: event.title,
-            eventDate: event.date,
-            eventTime: event.time,
-            venue: event.venue,
-            seatsBooked: seats,
-            bookingRef,
-            bookingId: booking._id,
-            cancellationSecret: booking.cancellationSecret,
-            amount: 0,
-            isFree: true,
-            paymentStatus: "free",
-            ticketCode: firstTicketCode,
-            tickets: issuedTickets,
-          });
-        } catch (emailErr) {
-          console.error("Booking confirmation email dispatch failed:", emailErr);
-        }
+        // Send confirmation email asynchronously with QR ticket and cancellation link
+        sendBookingConfirmation({
+          toEmail: finalAttendeeEmail,
+          attendeeName: finalAttendeeName,
+          eventTitle: event.title,
+          eventDate: event.date,
+          eventTime: event.time,
+          venue: event.venue,
+          seatsBooked: seats,
+          bookingRef,
+          bookingId: booking._id,
+          cancellationSecret: booking.cancellationSecret,
+          amount: 0,
+          isFree: true,
+          paymentStatus: "free",
+          ticketCode: firstTicketCode,
+          tickets: issuedTickets,
+        }).catch((err) => console.error("Email dispatch failed:", err));
 
         return res.status(201).json({
           message: "Free registration confirmed successfully!",
@@ -190,8 +189,8 @@ export async function createBooking(req, res) {
         user: userId,
         event: event._id,
         seatsBooked: seats,
-        attendeeName: attendeeName.trim(),
-        attendeeEmail: attendeeEmail.trim().toLowerCase(),
+        attendeeName: finalAttendeeName,
+        attendeeEmail: finalAttendeeEmail,
         amount: totalAmount,
         currency: "INR",
         bookingStatus: "pending",
@@ -269,8 +268,8 @@ export async function createBooking(req, res) {
           image: event.image,
         },
         seatsBooked: seats,
-        attendeeName: attendeeName.trim(),
-        attendeeEmail: attendeeEmail.trim().toLowerCase(),
+        attendeeName: finalAttendeeName,
+        attendeeEmail: finalAttendeeEmail,
         amount: 0,
         currency: "INR",
         bookingStatus: "confirmed",
@@ -281,26 +280,22 @@ export async function createBooking(req, res) {
 
       inMemoryBookings.unshift(booking);
 
-      try {
-        await sendBookingConfirmation({
-          toEmail: attendeeEmail.trim().toLowerCase(),
-          attendeeName: attendeeName.trim(),
-          eventTitle: event.title,
-          eventDate: event.date,
-          eventTime: event.time,
-          venue: event.venue,
-          seatsBooked: seats,
-          bookingRef,
-          bookingId: booking._id,
-          cancellationSecret: booking.bookingRef,
-          amount: 0,
-          isFree: true,
-          paymentStatus: "free",
-          ticketCode: bookingRef,
-        });
-      } catch (emailErr) {
-        console.error("In-memory booking confirmation email dispatch failed:", emailErr);
-      }
+      sendBookingConfirmation({
+        toEmail: finalAttendeeEmail,
+        attendeeName: finalAttendeeName,
+        eventTitle: event.title,
+        eventDate: event.date,
+        eventTime: event.time,
+        venue: event.venue,
+        seatsBooked: seats,
+        bookingRef,
+        bookingId: booking._id,
+        cancellationSecret: booking.bookingRef,
+        amount: 0,
+        isFree: true,
+        paymentStatus: "free",
+        ticketCode: bookingRef,
+      }).catch((err) => console.error("Email dispatch failed:", err));
 
       return res.status(201).json({
         message: "Free registration confirmed successfully! (In-Memory Session)",
@@ -475,27 +470,23 @@ export async function verifyPayment(req, res) {
       const eventTime = booking.event?.time || updatedEvent?.time || "Scheduled Time";
       const eventVenue = booking.event?.venue || updatedEvent?.venue || "Fort Kochi Studio";
 
-      try {
-        await sendBookingConfirmation({
-          toEmail: booking.attendeeEmail,
-          attendeeName: booking.attendeeName,
-          eventTitle,
-          eventDate,
-          eventTime,
-          venue: eventVenue,
-          seatsBooked: booking.seatsBooked,
-          bookingRef: booking.bookingRef,
-          bookingId: booking._id,
-          cancellationSecret: booking.cancellationSecret,
-          amount: booking.amount,
-          isFree: false,
-          paymentStatus: "completed",
-          ticketCode: firstTicketCode,
-          tickets: issuedTickets,
-        });
-      } catch (emailErr) {
-        console.error("Paid booking confirmation email dispatch failed:", emailErr);
-      }
+      sendBookingConfirmation({
+        toEmail: booking.attendeeEmail,
+        attendeeName: booking.attendeeName,
+        eventTitle,
+        eventDate,
+        eventTime,
+        venue: eventVenue,
+        seatsBooked: booking.seatsBooked,
+        bookingRef: booking.bookingRef,
+        bookingId: booking._id,
+        cancellationSecret: booking.cancellationSecret,
+        amount: booking.amount,
+        isFree: false,
+        paymentStatus: "completed",
+        ticketCode: firstTicketCode,
+        tickets: issuedTickets,
+      }).catch((err) => console.error("Email dispatch failed:", err));
 
       return res.status(200).json({
         message: "Payment verified successfully! Your booking is confirmed.",
@@ -752,20 +743,16 @@ export async function cancelBookingByToken(req, res) {
       }
 
       // Send cancellation confirmation email
-      try {
-        await sendBookingCancellation({
-          toEmail: booking.attendeeEmail,
-          attendeeName: booking.attendeeName,
-          eventTitle: booking.event?.title || "Gather Session",
-          eventDate: booking.event?.date || "",
-          bookingRef: booking.bookingRef,
-          seatsBooked: booking.seatsBooked,
-          amount: booking.amount,
-          isFree: booking.amount === 0 || booking.paymentStatus === "free",
-        });
-      } catch (emailErr) {
-        console.error("Booking cancellation email dispatch failed:", emailErr);
-      }
+      sendBookingCancellation({
+        toEmail: booking.attendeeEmail,
+        attendeeName: booking.attendeeName,
+        eventTitle: booking.event?.title || "Gather Session",
+        eventDate: booking.event?.date || "",
+        bookingRef: booking.bookingRef,
+        seatsBooked: booking.seatsBooked,
+        amount: booking.amount,
+        isFree: booking.amount === 0 || booking.paymentStatus === "free",
+      }).catch((err) => console.error("Email dispatch failed:", err));
 
       return res.status(200).json({
         message: "Your reservation has been cancelled successfully. A confirmation email has been sent.",
@@ -791,20 +778,16 @@ export async function cancelBookingByToken(req, res) {
       event.availableSeats += booking.seatsBooked;
     }
 
-    try {
-      await sendBookingCancellation({
-        toEmail: booking.attendeeEmail,
-        attendeeName: booking.attendeeName,
-        eventTitle: booking.event?.title || event?.title || "Gather Session",
-        eventDate: booking.event?.date || event?.date || "",
-        bookingRef: booking.bookingRef,
-        seatsBooked: booking.seatsBooked,
-        amount: booking.amount,
-        isFree: booking.amount === 0 || booking.paymentStatus === "free",
-      });
-    } catch (emailErr) {
-      console.error("In-memory booking cancellation email dispatch failed:", emailErr);
-    }
+    sendBookingCancellation({
+      toEmail: booking.attendeeEmail,
+      attendeeName: booking.attendeeName,
+      eventTitle: booking.event?.title || event?.title || "Gather Session",
+      eventDate: booking.event?.date || event?.date || "",
+      bookingRef: booking.bookingRef,
+      seatsBooked: booking.seatsBooked,
+      amount: booking.amount,
+      isFree: booking.amount === 0 || booking.paymentStatus === "free",
+    }).catch((err) => console.error("Email dispatch failed:", err));
 
     return res.status(200).json({
       message: "Your reservation has been cancelled successfully. A confirmation email has been sent.",
@@ -868,20 +851,16 @@ export async function cancelBooking(req, res) {
       }
 
       // Send cancellation confirmation email
-      try {
-        await sendBookingCancellation({
-          toEmail: booking.attendeeEmail,
-          attendeeName: booking.attendeeName,
-          eventTitle: booking.event?.title || "Gather Session",
-          eventDate: booking.event?.date || "",
-          bookingRef: booking.bookingRef,
-          seatsBooked: booking.seatsBooked,
-          amount: booking.amount,
-          isFree: booking.amount === 0 || booking.paymentStatus === "free",
-        });
-      } catch (emailErr) {
-        console.error("Cancellation email dispatch failed:", emailErr);
-      }
+      sendBookingCancellation({
+        toEmail: booking.attendeeEmail,
+        attendeeName: booking.attendeeName,
+        eventTitle: booking.event?.title || "Gather Session",
+        eventDate: booking.event?.date || "",
+        bookingRef: booking.bookingRef,
+        seatsBooked: booking.seatsBooked,
+        amount: booking.amount,
+        isFree: booking.amount === 0 || booking.paymentStatus === "free",
+      }).catch((err) => console.error("Email dispatch failed:", err));
 
       return res.status(200).json({ message: "Booking cancelled successfully. Seats have been restored." });
     }
@@ -902,20 +881,16 @@ export async function cancelBooking(req, res) {
       event.availableSeats += booking.seatsBooked;
     }
 
-    try {
-      await sendBookingCancellation({
-        toEmail: booking.attendeeEmail,
-        attendeeName: booking.attendeeName,
-        eventTitle: booking.event?.title || event?.title || "Gather Session",
-        eventDate: booking.event?.date || event?.date || "",
-        bookingRef: booking.bookingRef,
-        seatsBooked: booking.seatsBooked,
-        amount: booking.amount,
-        isFree: booking.amount === 0 || booking.paymentStatus === "free",
-      });
-    } catch (emailErr) {
-      console.error("Cancellation email dispatch failed:", emailErr);
-    }
+    sendBookingCancellation({
+      toEmail: booking.attendeeEmail,
+      attendeeName: booking.attendeeName,
+      eventTitle: booking.event?.title || event?.title || "Gather Session",
+      eventDate: booking.event?.date || event?.date || "",
+      bookingRef: booking.bookingRef,
+      seatsBooked: booking.seatsBooked,
+      amount: booking.amount,
+      isFree: booking.amount === 0 || booking.paymentStatus === "free",
+    }).catch((err) => console.error("Email dispatch failed:", err));
 
     return res.status(200).json({ message: "Booking cancelled successfully. Seats have been restored." });
   } catch (error) {

@@ -202,27 +202,23 @@ export async function claimFreeOffer(req, res) {
     }
 
     // Send confirmation email
-    try {
-      await sendBookingConfirmation({
-        toEmail: waitlist.attendeeEmail,
-        attendeeName: waitlist.attendeeName,
-        eventTitle: event.title,
-        eventDate: event.date,
-        eventTime: event.time,
-        venue: event.venue,
-        seatsBooked: 1,
-        bookingRef,
-        bookingId: booking._id,
-        cancellationSecret: booking.cancellationSecret,
-        amount: 0,
-        isFree: true,
-        paymentStatus: "free",
-        ticketCode: firstTicketCode,
-        tickets: issuedTickets,
-      });
-    } catch (emailErr) {
-      console.error("Waitlist booking confirmation email failed:", emailErr);
-    }
+    sendBookingConfirmation({
+      toEmail: waitlist.attendeeEmail,
+      attendeeName: waitlist.attendeeName,
+      eventTitle: event.title,
+      eventDate: event.date,
+      eventTime: event.time,
+      venue: event.venue,
+      seatsBooked: 1,
+      bookingRef,
+      bookingId: booking._id,
+      cancellationSecret: booking.cancellationSecret,
+      amount: 0,
+      isFree: true,
+      paymentStatus: "free",
+      ticketCode: firstTicketCode,
+      tickets: issuedTickets,
+    }).catch((err) => console.error("Email failed:", err));
 
     return res.status(200).json({
       message: "Waitlist seat successfully claimed!",
@@ -407,27 +403,23 @@ export async function verifyPaidOfferClaim(req, res) {
     }
 
     // Send confirmation email
-    try {
-      await sendBookingConfirmation({
-        toEmail: booking.attendeeEmail,
-        attendeeName: booking.attendeeName,
-        eventTitle: booking.event?.title || "Gather Masterclass",
-        eventDate: booking.event?.date || "Scheduled Date",
-        eventTime: booking.event?.time || "Scheduled Time",
-        venue: booking.event?.venue || "Fort Kochi Studio",
-        seatsBooked: 1,
-        bookingRef: booking.bookingRef,
-        bookingId: booking._id,
-        cancellationSecret: booking.cancellationSecret,
-        amount: booking.amount,
-        isFree: false,
-        paymentStatus: "completed",
-        ticketCode: firstTicketCode,
-        tickets: issuedTickets,
-      });
-    } catch (emailErr) {
-      console.error("Waitlist paid booking confirmation email failed:", emailErr);
-    }
+    sendBookingConfirmation({
+      toEmail: booking.attendeeEmail,
+      attendeeName: booking.attendeeName,
+      eventTitle: booking.event?.title || "Gather Masterclass",
+      eventDate: booking.event?.date || "Scheduled Date",
+      eventTime: booking.event?.time || "Scheduled Time",
+      venue: booking.event?.venue || "Fort Kochi Studio",
+      seatsBooked: 1,
+      bookingRef: booking.bookingRef,
+      bookingId: booking._id,
+      cancellationSecret: booking.cancellationSecret,
+      amount: booking.amount,
+      isFree: false,
+      paymentStatus: "completed",
+      ticketCode: firstTicketCode,
+      tickets: issuedTickets,
+    }).catch((err) => console.error("Email failed:", err));
 
     return res.status(200).json({
       message: "Waitlist seat confirmed and payment verified successfully!",

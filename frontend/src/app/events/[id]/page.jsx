@@ -251,8 +251,8 @@ export default function EventDetailPage({ params }) {
 
   useEffect(() => {
     if (user) {
-      if (!attendeeName) setAttendeeName(user.name);
-      if (!attendeeEmail) setAttendeeEmail(user.email);
+      setAttendeeName(user.name || "");
+      setAttendeeEmail(user.email || "");
     }
   }, [user]);
 
