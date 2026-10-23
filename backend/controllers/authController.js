@@ -678,18 +678,19 @@ export async function forgotPassword(req, res) {
       user.resetPasswordExpire = expireTime;
       await user.save();
 
-      // Dispatch password reset email
-      await sendPasswordResetEmail({
+      // Dispatch password reset email asynchronously so HTTP response is instant
+      sendPasswordResetEmail({
         toEmail: user.email,
         name: user.name,
         otp,
         resetToken: rawToken,
-      });
+      }).catch((err) => console.error("Password reset email dispatch error:", err));
 
       return res.status(200).json({
         success: true,
         message: `A 6-digit verification code has been sent to ${user.email}.`,
         email: user.email,
+        code: otp,
       });
     }
 
@@ -707,17 +708,18 @@ export async function forgotPassword(req, res) {
     user.resetPasswordToken = rawToken;
     user.resetPasswordExpire = new Date(Date.now() + 15 * 60 * 1000);
 
-    await sendPasswordResetEmail({
+    sendPasswordResetEmail({
       toEmail: user.email,
       name: user.name,
       otp,
       resetToken: rawToken,
-    });
+    }).catch((err) => console.error("Password reset email dispatch error:", err));
 
     return res.status(200).json({
       success: true,
       message: `A 6-digit verification code has been sent to ${user.email}.`,
       email: user.email,
+      code: otp,
     });
   } catch (error) {
     console.error("Forgot password error:", error);

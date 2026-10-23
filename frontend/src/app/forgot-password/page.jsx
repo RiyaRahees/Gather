@@ -108,7 +108,12 @@ export default function ForgotPasswordPage() {
         throw new Error(data.error || "Unable to send reset code. Please try again.");
       }
 
-      setInfoMessage(`A 6-digit verification code has been sent to ${email.trim()}.`);
+      if (data.code) {
+        setOtp(data.code);
+        setInfoMessage(`Verification code sent to ${email.trim()}! Code pre-filled: ${data.code}`);
+      } else {
+        setInfoMessage(`A 6-digit verification code has been sent to ${email.trim()}.`);
+      }
       setStep("reset");
     } catch (err) {
       setError(err.message || "Failed to initiate password reset.");
@@ -132,7 +137,12 @@ export default function ForgotPasswordPage() {
       if (!res.ok) {
         throw new Error(data.error || "Failed to resend code.");
       }
-      setInfoMessage(`A fresh 6-digit code has been sent to ${email.trim()}.`);
+      if (data.code) {
+        setOtp(data.code);
+        setInfoMessage(`A fresh 6-digit code has been generated: ${data.code}`);
+      } else {
+        setInfoMessage(`A fresh 6-digit code has been sent to ${email.trim()}.`);
+      }
     } catch (err) {
       setError(err.message || "Failed to resend code.");
     } finally {
