@@ -5,10 +5,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import PriceTag from "@/components/common/PriceTag";
-import { ArrowRight, MapPin, Calendar, IndianRupee } from "lucide-react";
+import { ArrowRight, MapPin, Calendar, IndianRupee, Heart } from "lucide-react";
 
 export default function EventCard({ event }) {
   const router = useRouter();
+  const [isLiked, setIsLiked] = useState(false);
 
   if (!event) return null;
 
@@ -129,8 +130,30 @@ export default function EventCard({ event }) {
             )}
           </div>
 
-          {/* Action Row: Book Button */}
+          {/* Action Row: Like Button + Professional Book Button */}
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsLiked(!isLiked);
+              }}
+              aria-label={isLiked ? "Unlike event" : "Like event"}
+              title={isLiked ? "Remove from favorites" : "Add to favorites"}
+              className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all duration-200 cursor-pointer ${
+                isLiked
+                  ? "bg-rose-50 border-rose-200 text-rose-500 scale-105 shadow-sm"
+                  : "bg-[#F7F4ED] border-[#E7E2D8] text-[#77776F] hover:text-rose-500 hover:border-rose-200 hover:bg-white"
+              }`}
+            >
+              <Heart
+                className={`w-4 h-4 transition-transform duration-200 ${
+                  isLiked ? "fill-rose-500 scale-110" : "hover:scale-110"
+                }`}
+              />
+            </button>
+
             <Link
               href={`/events/${eventId}`}
               aria-label={`View details for ${event.title}`}
