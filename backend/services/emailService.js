@@ -288,7 +288,8 @@ export async function sendBookingConfirmation({
   }
 
   try {
-    const from = process.env.EMAIL_FROM || "EventFlow <noreply@eventflow.dev>";
+    const senderUser = process.env.SMTP_USER || "riyarahees136@gmail.com";
+    const from = process.env.EMAIL_FROM || `Gather <${senderUser}>`;
     const mailOptions = {
       from,
       to: toEmail,
@@ -441,7 +442,8 @@ export async function sendBookingCancellation({
   }
 
   try {
-    const from = process.env.EMAIL_FROM || "EventFlow <noreply@eventflow.dev>";
+    const senderUser = process.env.SMTP_USER || "riyarahees136@gmail.com";
+    const from = process.env.EMAIL_FROM || `Gather <${senderUser}>`;
     await transporter.sendMail({
       from,
       to: toEmail,
