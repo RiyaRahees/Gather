@@ -45,6 +45,34 @@ export default function GoogleSignInButton({
     if (!clientId) return;
 
     let mounted = true;
+    let resizeTimer = null;
+
+    const renderGsiButton = () => {
+      if (!googleButtonContainerRef.current || !window.google?.accounts?.id) return;
+
+      // Google Identity Services allowed width is between 200px and 400px.
+      // Measure actual container width to prevent overflow on mobile.
+      const containerWidth = googleButtonContainerRef.current.clientWidth || 280;
+      const targetWidth = Math.min(360, Math.max(200, Math.floor(containerWidth)));
+
+      try {
+        window.google.accounts.id.renderButton(
+          googleButtonContainerRef.current,
+          {
+            type: "standard",
+            shape: "pill",
+            theme: "outline",
+            text: "continue_with",
+            size: "large",
+            width: targetWidth,
+          }
+        );
+        if (mounted) setGisRendered(true);
+      } catch (err) {
+        console.warn("GSI renderButton error:", err);
+      }
+    };
+
     const checkGsi = setInterval(() => {
       if (typeof window !== "undefined" && window.google?.accounts?.id) {
         clearInterval(checkGsi);
@@ -58,29 +86,27 @@ export default function GoogleSignInButton({
             cancel_on_tap_outside: true,
           });
 
-          if (googleButtonContainerRef.current) {
-            window.google.accounts.id.renderButton(
-              googleButtonContainerRef.current,
-              {
-                type: "standard",
-                shape: "pill",
-                theme: "outline",
-                text: "continue_with",
-                size: "large",
-                width: 340,
-              }
-            );
-            setGisRendered(true);
-          }
+          renderGsiButton();
         } catch (e) {
           console.warn("Google Identity Services initialization:", e);
         }
       }
     }, 200);
 
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (mounted) renderGsiButton();
+      }, 150);
+    };
+
+    window.addEventListener("resize", handleResize);
+
     return () => {
       mounted = false;
       clearInterval(checkGsi);
+      clearTimeout(resizeTimer);
+      window.removeEventListener("resize", handleResize);
     };
   }, [clientId]);
 
@@ -135,12 +161,14 @@ export default function GoogleSignInButton({
       )}
 
       {/* Official Google Identity Services Button Container */}
-      <div
-        ref={googleButtonContainerRef}
-        className={`w-full flex justify-center min-h-[40px] ${
-          gisRendered ? "block" : "hidden"
-        }`}
-      />
+      <div className="w-full flex justify-center items-center overflow-hidden max-w-full">
+        <div
+          ref={googleButtonContainerRef}
+          className={`w-full flex justify-center items-center min-h-[44px] max-w-full [&>div]:!max-w-full [&_iframe]:!max-w-full ${
+            gisRendered ? "flex" : "hidden"
+          }`}
+        />
+      </div>
 
       {/* Styled Fallback / Immediate Button (visible while GIS is loading or if custom clicked) */}
       {!gisRendered && (
