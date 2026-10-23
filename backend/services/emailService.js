@@ -20,8 +20,8 @@ export function getFrontendBaseUrl() {
 }
 
 function getTransporter() {
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const user = process.env.EMAIL_USER || process.env.SMTP_USER;
+  const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
 
   if (!user || !pass || user.includes("placeholder")) {
     return null;
@@ -309,7 +309,7 @@ export async function sendBookingConfirmation({
   }
 
   try {
-    const senderUser = process.env.SMTP_USER || "riyarahees136@gmail.com";
+    const senderUser = process.env.EMAIL_USER || process.env.SMTP_USER || "riyarahees136@gmail.com";
     const from = process.env.EMAIL_FROM || `Gather <${senderUser}>`;
     const mailOptions = {
       from,
@@ -463,7 +463,7 @@ export async function sendBookingCancellation({
   }
 
   try {
-    const senderUser = process.env.SMTP_USER || "riyarahees136@gmail.com";
+    const senderUser = process.env.EMAIL_USER || process.env.SMTP_USER || "riyarahees136@gmail.com";
     const from = process.env.EMAIL_FROM || `Gather <${senderUser}>`;
     await transporter.sendMail({
       from,
