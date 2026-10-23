@@ -71,6 +71,123 @@ export function getTransporter() {
 }
 
 /**
+ * Universal email dispatcher:
+ * 1. Brevo HTTP API (Port 443 - HTTPS, bypasses cloud SMTP firewall blocks on Render)
+ * 2. SendGrid HTTP API (Port 443 - HTTPS)
+ * 3. Nodemailer SMTP (Local development)
+ */
+export async function dispatchEmail({ toEmail, attendeeName, subject, html, attachments = [] }) {
+  const brevoApiKey = process.env.BREVO_API_KEY;
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  const senderEmail = (process.env.BREVO_SENDER || process.env.SENDGRID_FROM || process.env.EMAIL_USER || process.env.SMTP_USER || "riyarahees136@gmail.com").trim();
+  const senderName = "Gather";
+
+  // --- 1. Try Brevo HTTPS REST API (Port 443 - Never blocked by Render) ---
+  if (brevoApiKey) {
+    try {
+      const payload = {
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email: toEmail.trim().toLowerCase(), name: attendeeName || "Valued Guest" }],
+        subject,
+        htmlContent: html,
+      };
+
+      if (attachments && attachments.length > 0) {
+        payload.attachment = attachments.map((att) => ({
+          name: att.filename,
+          content: Buffer.isBuffer(att.content) ? att.content.toString("base64") : Buffer.from(att.content).toString("base64"),
+        }));
+      }
+
+      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "api-key": brevoApiKey.trim(),
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || JSON.stringify(data));
+      }
+      console.log(`✓  [Brevo HTTP] Email delivered to ${toEmail} (MessageId: ${data.messageId || "ok"})`);
+      return { success: true, provider: "brevo", messageId: data.messageId };
+    } catch (brevoErr) {
+      console.error(`⚠️  [Brevo Error] ${brevoErr.message}`);
+    }
+  }
+
+  // --- 2. Try SendGrid HTTPS REST API (Port 443 - Never blocked by Render) ---
+  if (sendgridApiKey) {
+    try {
+      const payload = {
+        personalizations: [{ to: [{ email: toEmail.trim().toLowerCase() }] }],
+        from: { email: senderEmail, name: senderName },
+        subject,
+        content: [{ type: "text/html", value: html }],
+      };
+
+      if (attachments && attachments.length > 0) {
+        payload.attachments = attachments.map((att) => ({
+          filename: att.filename,
+          content: Buffer.isBuffer(att.content) ? att.content.toString("base64") : Buffer.from(att.content).toString("base64"),
+          type: att.contentType || "image/png",
+          disposition: "inline",
+          content_id: att.cid,
+        }));
+      }
+
+      const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${sendgridApiKey.trim()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText);
+      }
+      console.log(`✓  [SendGrid HTTP] Email delivered to ${toEmail}`);
+      return { success: true, provider: "sendgrid" };
+    } catch (sgErr) {
+      console.error(`⚠️  [SendGrid Error] ${sgErr.message}`);
+    }
+  }
+
+  // --- 3. Fallback to Nodemailer SMTP (Localhost / unblocked network) ---
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.log(`✉️  [Email Notice] No email provider configured. Simulated dispatch to ${toEmail}.`);
+    return { success: true, simulated: true };
+  }
+
+  try {
+    const from = getFromAddress();
+    const mailOptions = {
+      from,
+      to: toEmail,
+      subject,
+      html,
+    };
+    if (attachments && attachments.length > 0) {
+      mailOptions.attachments = attachments;
+    }
+    await transporter.sendMail(mailOptions);
+    console.log(`✓  [SMTP Sent] Email delivered to ${toEmail}`);
+    return { success: true, provider: "nodemailer" };
+  } catch (err) {
+    console.error(`⚠️  [SMTP Error] Failed to send email to ${toEmail}:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
  * Send booking confirmation email with inline QR ticket and direct cancellation option
  */
 export async function sendBookingConfirmation({
@@ -312,42 +429,24 @@ export async function sendBookingConfirmation({
     </html>
   `;
 
-  if (!transporter) {
-    console.log(
-      `✉️  [Email Notice] SMTP not configured. Simulated dispatch for Booking #${bookingRef} to ${attendeeName} <${toEmail}>.`
-    );
-    return { success: true, simulated: true };
+  const attachments = [];
+  if (qrBuffer) {
+    attachments.push({
+      filename: `ticket-${primaryTicketCode || bookingRef}.png`,
+      content: qrBuffer,
+      contentType: "image/png",
+      contentDisposition: "inline",
+      cid: "ticketqrcode",
+    });
   }
 
-  try {
-    const from = getFromAddress();
-    const mailOptions = {
-      from,
-      to: toEmail,
-      subject: `Confirmed: Your pass for "${eventTitle}" [${bookingRef}]`,
-      html: emailHtml,
-    };
-
-    if (qrBuffer) {
-      mailOptions.attachments = [
-        {
-          filename: `ticket-${primaryTicketCode || bookingRef}.png`,
-          content: qrBuffer,
-          contentType: "image/png",
-          contentDisposition: "inline",
-          cid: "ticketqrcode",
-        },
-      ];
-    }
-
-    await transporter.sendMail(mailOptions);
-    console.log(`✓  [Email Sent] Confirmation delivered to ${toEmail} for booking ${bookingRef}.`);
-    return { success: true, simulated: false };
-  } catch (err) {
-    console.error(`⚠️  [Email Error] Failed to send email to ${toEmail}:`, err.message);
-    // Return gracefully so booking is never cancelled or rolled back merely because of an email delivery network issue
-    return { success: false, error: err.message };
-  }
+  return await dispatchEmail({
+    toEmail,
+    attendeeName,
+    subject: `Confirmed: Your pass for "${eventTitle}" [${bookingRef}]`,
+    html: emailHtml,
+    attachments,
+  });
 }
 
 /**
@@ -465,27 +564,12 @@ export async function sendBookingCancellation({
     </html>
   `;
 
-  if (!transporter) {
-    console.log(
-      `✉️  [Email Notice] SMTP not configured. Simulated cancellation for Booking #${bookingRef} to ${toEmail}.`
-    );
-    return { success: true, simulated: true };
-  }
-
-  try {
-    const from = getFromAddress();
-    await transporter.sendMail({
-      from,
-      to: toEmail,
-      subject: `Cancelled: Your reservation for "${eventTitle}" [${bookingRef}]`,
-      html: emailHtml,
-    });
-    console.log(`✓  [Email Sent] Cancellation confirmed to ${toEmail} for booking ${bookingRef}.`);
-    return { success: true, simulated: false };
-  } catch (err) {
-    console.error(`⚠️  [Email Error] Failed to send cancellation email to ${toEmail}:`, err.message);
-    return { success: false, error: err.message };
-  }
+  return await dispatchEmail({
+    toEmail,
+    attendeeName,
+    subject: `Cancelled: Your reservation for "${eventTitle}" [${bookingRef}]`,
+    html: emailHtml,
+  });
 }
 
 /**
@@ -645,25 +729,12 @@ export async function sendWaitlistJoinedEmail({
     </html>
   `;
 
-  if (!transporter) {
-    console.log(`[Email Mock] Waitlist Joined email sent to ${toEmail} for ${eventTitle} (Position #${num})`);
-    return { success: true, simulated: true };
-  }
-
-  try {
-    const from = getFromAddress();
-    await transporter.sendMail({
-      from,
-      to: toEmail,
-      subject: `You're on the Waitlist (#${num} · ${word} in line) - ${eventTitle}`,
-      html: emailHtml,
-    });
-    console.log(`✓  [Email Sent] Waitlist confirmation sent to ${toEmail} for "${eventTitle}" (#${num}).`);
-    return { success: true, simulated: false };
-  } catch (err) {
-    console.error(`⚠️  [Email Error] Failed to send waitlist joined email to ${toEmail}:`, err.message);
-    return { success: false, error: err.message };
-  }
+  return await dispatchEmail({
+    toEmail,
+    attendeeName: attendeeName || "Valued Attendee",
+    subject: `You're on the Waitlist (#${num} · ${word} in line) - ${eventTitle}`,
+    html: emailHtml,
+  });
 }
 
 /**
@@ -816,27 +887,12 @@ export async function sendWaitlistOfferEmail({
     </html>
   `;
 
-  if (!transporter) {
-    console.log(
-      `✉️  [Email Notice] SMTP not configured. Simulated Waitlist Offer for ${attendeeName} <${toEmail}>.`
-    );
-    return { success: true, simulated: true };
-  }
-
-  try {
-    const from = getFromAddress();
-    await transporter.sendMail({
-      from,
-      to: toEmail,
-      subject: `Seat Available! You've been promoted from the waitlist for "${eventTitle}"`,
-      html: emailHtml,
-    });
-    console.log(`✓  [Email Sent] Waitlist offer sent to ${toEmail} for "${eventTitle}".`);
-    return { success: true, simulated: false };
-  } catch (err) {
-    console.error(`⚠️  [Email Error] Failed to send waitlist offer to ${toEmail}:`, err.message);
-    return { success: false, error: err.message };
-  }
+  return await dispatchEmail({
+    toEmail,
+    attendeeName,
+    subject: `Seat Available! You've been promoted from the waitlist for "${eventTitle}"`,
+    html: emailHtml,
+  });
 }
 
 /**
@@ -933,25 +989,12 @@ export async function sendPasswordResetEmail({ toEmail, name, otp, resetToken })
     </html>
   `;
 
-  if (!transporter) {
-    console.log(`✉️  [Email Notice] SMTP not configured. OTP printed above to console.`);
-    return { success: true, simulated: true };
-  }
-
-  try {
-    const from = getFromAddress();
-    await transporter.sendMail({
-      from,
-      to: toEmail,
-      subject: `Your Gather Password Reset Code: ${otp}`,
-      html: emailHtml,
-    });
-    console.log(`✓  [Email Sent] Password reset OTP sent to ${toEmail}`);
-    return { success: true, simulated: false };
-  } catch (err) {
-    console.error(`⚠️  [Email Error] Failed to send password reset to ${toEmail}:`, err.message);
-    return { success: false, error: err.message };
-  }
+  return await dispatchEmail({
+    toEmail,
+    attendeeName: name,
+    subject: `Your Gather Password Reset Code: ${otp}`,
+    html: emailHtml,
+  });
 }
 
 export default {

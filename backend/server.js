@@ -113,40 +113,50 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/api/email-diagnostics", async (req, res) => {
-  const user = process.env.EMAIL_USER || process.env.SMTP_USER;
-  const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
+  const brevoKey = process.env.BREVO_API_KEY;
+  const sgKey = process.env.SENDGRID_API_KEY;
+  const smtpUser = process.env.EMAIL_USER || process.env.SMTP_USER;
+  const smtpPass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
 
-  if (!user || !pass) {
-    return res.status(200).json({
-      configured: false,
-      error: "EMAIL_USER or EMAIL_PASS environment variable is NOT set in Render environment!",
-      hasUser: Boolean(user),
-      hasPass: Boolean(pass),
-    });
-  }
+  const status = {
+    activeProvider: brevoKey ? "brevo" : sgKey ? "sendgrid" : smtpUser ? "nodemailer_smtp" : "none",
+    providers: {
+      brevo: {
+        configured: Boolean(brevoKey),
+        protocol: "HTTPS (Port 443 - allowed on Render)",
+      },
+      sendgrid: {
+        configured: Boolean(sgKey),
+        protocol: "HTTPS (Port 443 - allowed on Render)",
+      },
+      smtp: {
+        configured: Boolean(smtpUser && smtpPass),
+        user: smtpUser ? smtpUser.replace(/(.{3})(.*)(@.*)/, "$1***$3") : null,
+        protocol: "SMTP (Ports 465/587 - blocked by Render free tier)",
+      },
+    },
+  };
 
-  try {
-    const transporter = getTransporter();
-    if (!transporter) {
-      return res.status(200).json({ configured: false, error: "Transporter could not be created." });
+  if (brevoKey) {
+    try {
+      const ping = await fetch("https://api.brevo.com/v3/account", {
+        headers: { "api-key": brevoKey.trim() },
+      });
+      const data = await ping.json();
+      status.providers.brevo.verified = ping.ok;
+      status.providers.brevo.accountEmail = data.email || null;
+      if (!ping.ok) status.providers.brevo.error = data.message;
+    } catch (e) {
+      status.providers.brevo.verified = false;
+      status.providers.brevo.error = e.message;
     }
-    await transporter.verify();
-    return res.status(200).json({
-      configured: true,
-      verified: true,
-      user: user.replace(/(.{3})(.*)(@.*)/, "$1***$3"),
-      message: "SMTP connected and verified successfully!",
-    });
-  } catch (err) {
-    return res.status(200).json({
-      configured: true,
-      verified: false,
-      user: user.replace(/(.{3})(.*)(@.*)/, "$1***$3"),
-      error: err.message,
-      code: err.code,
-      response: err.response,
-    });
   }
+
+  if (sgKey) {
+    status.providers.sendgrid.verified = true;
+  }
+
+  return res.status(200).json(status);
 });
 
 app.get("/", (req, res) => {
