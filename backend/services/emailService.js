@@ -27,13 +27,34 @@ function getTransporter() {
     return null;
   }
 
+  const cleanUser = user.trim();
+  const cleanPass = pass.replace(/\s+/g, "");
+  const host = process.env.SMTP_HOST || "smtp.gmail.com";
+  const isGmail = host.includes("gmail") || cleanUser.includes("@gmail.com");
+
+  if (isGmail) {
+    return nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: cleanUser,
+        pass: cleanPass,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+  }
+
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    host,
     port: parseInt(process.env.SMTP_PORT || "587", 10),
-    secure: false, // true for 465, false for 587
+    secure: parseInt(process.env.SMTP_PORT || "587", 10) === 465,
     auth: {
-      user: user.trim(),
-      pass: pass.replace(/\s+/g, ""),
+      user: cleanUser,
+      pass: cleanPass,
+    },
+    tls: {
+      rejectUnauthorized: false,
     },
   });
 }
