@@ -19,6 +19,11 @@ export function getFrontendBaseUrl() {
   return "https://gather-learn.vercel.app";
 }
 
+export function getFromAddress() {
+  const user = (process.env.EMAIL_USER || process.env.SMTP_USER || "riyarahees136@gmail.com").trim();
+  return process.env.EMAIL_FROM || `Gather <${user}>`;
+}
+
 function getTransporter() {
   const user = process.env.EMAIL_USER || process.env.SMTP_USER;
   const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
@@ -29,8 +34,8 @@ function getTransporter() {
 
   const cleanUser = user.trim();
   const cleanPass = pass.replace(/\s+/g, "");
-  const host = process.env.SMTP_HOST || "smtp.gmail.com";
-  const isGmail = host.includes("gmail") || cleanUser.includes("@gmail.com");
+  const host = process.env.SMTP_HOST;
+  const isGmail = !host || host.includes("gmail") || cleanUser.includes("@gmail.com");
 
   if (isGmail) {
     return nodemailer.createTransport({
@@ -46,7 +51,7 @@ function getTransporter() {
   }
 
   return nodemailer.createTransport({
-    host,
+    host: host || "smtp.gmail.com",
     port: parseInt(process.env.SMTP_PORT || "587", 10),
     secure: parseInt(process.env.SMTP_PORT || "587", 10) === 465,
     auth: {
@@ -309,8 +314,7 @@ export async function sendBookingConfirmation({
   }
 
   try {
-    const senderUser = process.env.EMAIL_USER || process.env.SMTP_USER || "riyarahees136@gmail.com";
-    const from = process.env.EMAIL_FROM || `Gather <${senderUser}>`;
+    const from = getFromAddress();
     const mailOptions = {
       from,
       to: toEmail,
@@ -463,8 +467,7 @@ export async function sendBookingCancellation({
   }
 
   try {
-    const senderUser = process.env.EMAIL_USER || process.env.SMTP_USER || "riyarahees136@gmail.com";
-    const from = process.env.EMAIL_FROM || `Gather <${senderUser}>`;
+    const from = getFromAddress();
     await transporter.sendMail({
       from,
       to: toEmail,
@@ -642,7 +645,7 @@ export async function sendWaitlistJoinedEmail({
   }
 
   try {
-    const from = process.env.EMAIL_FROM || "Gather <riyarahees136@gmail.com>";
+    const from = getFromAddress();
     await transporter.sendMail({
       from,
       to: toEmail,
@@ -815,7 +818,7 @@ export async function sendWaitlistOfferEmail({
   }
 
   try {
-    const from = process.env.EMAIL_FROM || "Gather <riyarahees136@gmail.com>";
+    const from = getFromAddress();
     await transporter.sendMail({
       from,
       to: toEmail,
@@ -930,7 +933,7 @@ export async function sendPasswordResetEmail({ toEmail, name, otp, resetToken })
   }
 
   try {
-    const from = process.env.EMAIL_FROM || "Gather <riyarahees136@gmail.com>";
+    const from = getFromAddress();
     await transporter.sendMail({
       from,
       to: toEmail,
