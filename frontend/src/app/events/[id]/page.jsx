@@ -1736,7 +1736,7 @@ export default function EventDetailPage({ params }) {
 
       {/* Top-Right Screen Toast Notification */}
       {toast && (
-        <div className="fixed top-5 right-5 z-[9999] max-w-sm w-full mx-4 sm:mx-0 animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-auto">
+        <div className="fixed top-20 sm:top-6 inset-x-4 sm:inset-x-auto sm:right-6 sm:w-full max-w-md sm:max-w-sm mx-auto sm:mx-0 z-[9999] animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-auto">
           <div
             className={`p-4 rounded-2xl border shadow-xl backdrop-blur-md flex items-start gap-3 ${
               toast.type === "success"
