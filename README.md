@@ -19,7 +19,6 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Interface Preview](#interface-preview)
 - [Key Features](#key-features)
   - [Attendee Experience](#attendee-experience)
   - [Administrator Operations](#administrator-operations)
@@ -81,18 +80,6 @@ Traditional ticketing software frequently suffers from generic styling, opaque o
 - **Attendees**: Creative professionals, engineers, and learners seeking studio workshops, reserving single or multi-seat passes, holding vector QR tickets, or joining priority waitlists.
 - **Event Curators / Hosts**: Specialists submitting workshop pitches with customized curriculum plans and target formats.
 - **Administrators & Door Staff**: Event organizers monitoring registrations, verifying transactions, executing ticket check-ins via camera or code, and managing event publications.
-
----
-
-## Interface Preview
-
-| Homepage & Editorial Hero | Workshop Catalogue & Filtering |
-| :---: | :---: |
-| ![Homepage](./screenshots/homepage.png) | ![Events Catalogue](./screenshots/events_catalogue.png) |
-
-| Operational Admin Dashboard | Attendee Passes & Boarding Passes |
-| :---: | :---: |
-| ![Admin Dashboard](./screenshots/admin_dashboard.png) | Attendee passes with individual vector QR codes & print layouts |
 
 ---
 
@@ -286,10 +273,6 @@ graph TD
 gather/
 ├── package.json                         # Workspace scripts for frontend, backend, and seeding
 ├── .gitignore                           # Repository ignore rules (node_modules, .env, .next)
-├── screenshots/                         # Actual user interface previews
-│   ├── homepage.png                     # Editorial homepage and category grids
-│   ├── events_catalogue.png             # Workshop catalogue and filters
-│   └── admin_dashboard.png              # Administrative metrics and revenue tracking
 ├── backend/
 │   ├── package.json                     # Backend dependencies and execution scripts
 │   ├── server.js                        # Express server, middleware mounting, and 60s waitlist worker
