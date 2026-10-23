@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Menu, X, ArrowRight, ArrowLeft, Shield, User, LogOut, ChevronDown, Ticket } from "lucide-react";
+import { Menu, X, ArrowRight, ArrowLeft, Shield, User, LogOut, LogIn, ChevronDown, Ticket, Compass, Calendar, Users, Info } from "lucide-react";
 
 import { usePathname, useSearchParams } from "next/navigation";
 import Logo from "@/components/common/Logo";
@@ -33,25 +33,60 @@ function NavbarContent() {
     };
   }, [userDropdownOpen]);
 
+  // Prevent background scrolling while mobile drawer is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [mobileMenuOpen]);
+
+  // Automatically close mobile drawer when navigating
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname, searchParams]);
+
+  // Handle Escape key to close mobile drawer
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === "Escape" && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    }
+    if (mobileMenuOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
+
   const userNavLinks = [
     {
       label: "Discover",
       href: "/events",
+      icon: Compass,
       isActive: pathname === "/events" && !activeCategory,
     },
     {
       label: "Workshops",
       href: "/events?category=Design",
+      icon: Calendar,
       isActive: pathname === "/events" && activeCategory === "Design",
     },
     {
       label: "Conferences",
       href: "/events?category=Technology",
+      icon: Users,
       isActive: pathname === "/events" && activeCategory === "Technology",
     },
     {
       label: "About",
       href: "/#about",
+      icon: Info,
       isActive: pathname === "/" && typeof window !== "undefined" && window.location.hash === "#about",
     },
   ];
@@ -60,26 +95,31 @@ function NavbarContent() {
     {
       label: "Dashboard",
       href: "/admin/dashboard",
+      icon: Shield,
       isActive: pathname === "/admin/dashboard" || pathname === "/admin",
     },
     {
       label: "Manage Events",
       href: "/admin/events",
+      icon: Calendar,
       isActive: pathname === "/admin/events",
     },
     {
       label: "Attendees",
       href: "/admin/bookings",
+      icon: Users,
       isActive: pathname === "/admin/bookings",
     },
     {
       label: "Payments",
       href: "/admin/payments",
+      icon: Ticket,
       isActive: pathname === "/admin/payments",
     },
     {
       label: "Users",
       href: "/admin/users",
+      icon: User,
       isActive: pathname === "/admin/users",
     },
   ];
@@ -92,7 +132,8 @@ function NavbarContent() {
     : userNavLinks;
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-[#E2DDD3] shadow-[0_2px_12px_rgba(23,25,21,0.06)] transition-all">
+    <>
+      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-[#E2DDD3] shadow-[0_2px_12px_rgba(23,25,21,0.06)] transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between">
         
         {/* Clean Standard Brand Name */}
@@ -278,87 +319,174 @@ function NavbarContent() {
           </div>
         ) : (
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-[#171915]"
-            aria-label="Toggle navigation menu"
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className="md:hidden p-2 text-[#171915] hover:text-[#073F2E] transition-colors focus:outline-hidden cursor-pointer"
+            aria-label="Open navigation menu"
           >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            <Menu className="w-6 h-6" />
           </button>
         )}
       </div>
-
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-[#E2DDD3] bg-white px-4 sm:px-6 py-5 space-y-2 shadow-xl">
-          {activeNavLinks.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className={`block px-3 py-2 rounded-xl text-base font-medium transition-colors ${
-                item.isActive
-                  ? "bg-[#073F2E] text-white font-semibold"
-                  : "text-[#171915] hover:bg-[#E7E2D8]/50"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-
-          <div className="pt-4 border-t border-[#E7E2D8] flex flex-col gap-3">
-            {((!isAdminRoute && user && user.role !== "admin" && user.email !== "admin@gmail.com") || (isAdminRoute && user && user.role === "admin")) ? (
-              <>
-                {!isAdminRoute ? (
-                  <Link
-                    href="/account"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="btn-secondary w-full py-2.5 rounded-full text-center text-sm font-semibold"
-                  >
-                    My Bookings
-                  </Link>
-                ) : (
-                  <Link
-                    href="/admin/dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="bg-[#073F2E] text-white w-full py-2.5 rounded-full text-center text-sm font-semibold"
-                  >
-                    Admin Dashboard
-                  </Link>
-                )}
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    logout();
-                  }}
-                  className="w-full py-2.5 text-center text-sm font-semibold text-red-600"
-                >
-                  Log out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href={isAdminRoute ? "/admin/login" : "/login"}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="btn-secondary w-full py-2.5 rounded-full text-center text-sm font-semibold"
-                >
-                  Log in
-                </Link>
-                {!isAdminRoute && (
-                  <Link
-                    href="/register"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="btn-forest w-full py-2.5 rounded-full text-center text-sm font-semibold"
-                  >
-                    Sign Up
-                  </Link>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </header>
+
+    {/* Dark Semi-Transparent Overlay Covering the Left Screen */}
+    <div
+      className={`fixed inset-0 bg-black/60 z-50 transition-opacity duration-300 ease-in-out md:hidden ${
+        mobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+      }`}
+      onClick={() => setMobileMenuOpen(false)}
+      aria-hidden="true"
+    />
+
+    {/* Right-Side Mobile Navigation Drawer (covering approx 50-55% mobile screen width) */}
+    <aside
+      aria-label="Mobile navigation drawer"
+      aria-hidden={!mobileMenuOpen}
+      className={`fixed top-0 right-0 bottom-0 h-full w-[54%] sm:w-[50%] min-w-[230px] max-w-[340px] bg-[#FCFBF7] border-l border-[#E7E2D8] z-50 shadow-2xl flex flex-col justify-between overflow-y-auto overflow-x-hidden transition-transform duration-300 ease-out md:hidden ${
+        mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+      }`}
+    >
+      {/* Top Header: Gather Logo & Close Button */}
+      <div className="relative z-10 px-4 sm:px-5 pt-5 pb-3 flex items-center justify-between border-b border-[#E7E2D8]/40">
+        <Link
+          href={isAdminRoute && isAdminAuthenticated ? "/admin/dashboard" : "/"}
+          onClick={() => setMobileMenuOpen(false)}
+          className="flex items-center"
+        >
+          <Logo size="xs" subtitle="CURATED EXPERIENCES" />
+        </Link>
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-label="Close navigation menu"
+          className="p-1.5 -mr-1 text-[#171915] hover:text-[#073F2E] transition-colors rounded-full hover:bg-black/5 cursor-pointer"
+        >
+          <X className="w-5 h-5 stroke-[2.2]" />
+        </button>
+      </div>
+
+      {/* Middle Navigation Links & Action Group */}
+      <div className="relative z-10 px-4 sm:px-5 py-5 flex-1 flex flex-col justify-between">
+        <nav className="space-y-4 sm:space-y-5">
+          {activeNavLinks.map((item) => {
+            const Icon = item.icon || Compass;
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3.5 group transition-colors py-0.5 ${
+                  item.isActive ? "text-[#073F2E]" : "text-[#171915] hover:text-[#073F2E]"
+                }`}
+              >
+                <div
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ${
+                    item.isActive
+                      ? "bg-[#073F2E] text-white shadow-xs"
+                      : "bg-[#EBF3E8] text-[#073F2E] group-hover:bg-[#DFECE0] group-hover:scale-105"
+                  }`}
+                >
+                  <Icon className="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[1.8]" />
+                </div>
+                <span
+                  style={{ fontFamily: '"Playfair Display", Georgia, serif' }}
+                  className={`text-[17px] sm:text-[19px] tracking-tight leading-tight ${
+                    item.isActive ? "font-bold text-[#073F2E]" : "font-medium text-[#171915]"
+                  }`}
+                >
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Bottom Actions Cluster */}
+        <div className="pt-4 border-t border-[#E7E2D8] mt-6 space-y-3.5">
+          {/* My Bookings Pill Button */}
+          {isAdminRoute && isAdminAuthenticated ? (
+            <Link
+              href="/admin/dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full flex items-center justify-between px-3.5 sm:px-4 py-2.5 rounded-full border border-[#073F2E]/30 bg-white/80 hover:bg-white hover:border-[#073F2E] transition-all group text-[#073F2E] shadow-2xs"
+            >
+              <div className="flex items-center gap-2.5">
+                <Shield className="w-4 h-4 text-[#073F2E]" />
+                <span
+                  style={{ fontFamily: '"Playfair Display", Georgia, serif' }}
+                  className="text-[14px] sm:text-[15px] font-semibold tracking-tight"
+                >
+                  Admin Dashboard
+                </span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-[#073F2E] group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          ) : (
+            <Link
+              href={user ? "/account" : "/login"}
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full flex items-center justify-between px-3.5 sm:px-4 py-2.5 rounded-full border border-[#171915]/25 bg-white/80 hover:bg-white hover:border-[#073F2E] transition-all group text-[#171915] shadow-2xs"
+            >
+              <div className="flex items-center gap-2.5">
+                <Ticket className="w-4 h-4 text-[#073F2E]" />
+                <span
+                  style={{ fontFamily: '"Playfair Display", Georgia, serif' }}
+                  className="text-[14px] sm:text-[15px] font-semibold tracking-tight"
+                >
+                  My Bookings
+                </span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-[#171915] group-hover:text-[#073F2E] group-hover:translate-x-0.5 transition-all" />
+            </Link>
+          )}
+
+          {/* Logout / Login link */}
+          {user ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                logout();
+              }}
+              className="flex items-center gap-2.5 px-1 py-1 text-[#DC2626] hover:text-[#B91C1C] transition-colors cursor-pointer group text-left w-full"
+            >
+              <LogOut className="w-4 h-4 text-[#DC2626] group-hover:-translate-x-0.5 transition-transform" />
+              <span
+                style={{ fontFamily: '"Playfair Display", Georgia, serif' }}
+                className="text-[15px] sm:text-[16px] font-medium"
+              >
+                Log out
+              </span>
+            </button>
+          ) : (
+            <Link
+              href={isAdminRoute ? "/admin/login" : "/login"}
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2.5 px-1 py-1 text-[#073F2E] hover:text-[#052F22] transition-colors group w-full"
+            >
+              <LogIn className="w-4 h-4 text-[#073F2E] group-hover:translate-x-0.5 transition-transform" />
+              <span
+                style={{ fontFamily: '"Playfair Display", Georgia, serif' }}
+                className="text-[15px] sm:text-[16px] font-medium"
+              >
+                Log in
+              </span>
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* Decorative corner overlapping circles from reference design */}
+      <div className="absolute -bottom-8 -right-8 w-44 sm:w-56 h-44 sm:h-56 pointer-events-none select-none z-0">
+        <svg viewBox="0 0 200 200" className="w-full h-full" fill="none">
+          <circle cx="165" cy="165" r="125" fill="#E4EFE7" />
+          <circle cx="155" cy="170" r="90" fill="#8EA996" fillOpacity="0.4" />
+          <circle cx="170" cy="185" r="70" fill="#073F2E" />
+        </svg>
+      </div>
+    </aside>
+  </>
   );
 }
 

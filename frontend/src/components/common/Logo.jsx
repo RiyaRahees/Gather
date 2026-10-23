@@ -5,10 +5,16 @@ export default function Logo({
   size = "md",
   variant = "dark",
   href,
+  subtitle = "CURATED SESSIONS",
 }) {
   const isLight = variant === "light";
 
   const sizeClasses = {
+    xs: {
+      mark: "w-6 h-6",
+      text: "text-xl",
+      sub: "text-[7px] tracking-[0.22em]",
+    },
     sm: {
       mark: "w-7 h-7",
       text: "text-2xl",
@@ -64,7 +70,7 @@ export default function Logo({
             isLight ? "text-white/70" : "text-[#77776F]"
           }`}
         >
-          CURATED SESSIONS
+          {subtitle}
         </span>
       </div>
     </div>
