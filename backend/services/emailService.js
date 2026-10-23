@@ -77,12 +77,52 @@ export function getTransporter() {
  * 3. Nodemailer SMTP (Local development)
  */
 export async function dispatchEmail({ toEmail, attendeeName, subject, html, attachments = [] }) {
+  const frontendUrl = getFrontendBaseUrl();
+  const isCloudProduction = !frontendUrl.includes("localhost") && !frontendUrl.includes("127.0.0.1");
+
+  // --- 1. Cloud HTTPS Relay via Vercel (Port 443 - Bypasses Render SMTP port blocking) ---
+  if (isCloudProduction || process.env.USE_HTTPS_RELAY === "true") {
+    try {
+      const relayPayload = {
+        toEmail,
+        subject,
+        html,
+        secret: process.env.INTERNAL_EMAIL_SECRET || "gather_internal_secret_2026",
+      };
+
+      if (attachments && attachments.length > 0) {
+        relayPayload.attachments = attachments.map((att) => ({
+          filename: att.filename,
+          content: Buffer.isBuffer(att.content) ? att.content.toString("base64") : Buffer.from(att.content).toString("base64"),
+          contentType: att.contentType || "image/png",
+          cid: att.cid,
+        }));
+      }
+
+      const relayRes = await fetch(`${frontendUrl}/api/send-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(relayPayload),
+      });
+
+      const relayData = await relayRes.json();
+      if (relayRes.ok && relayData.success) {
+        console.log(`✓  [HTTPS Relay] Email delivered to ${toEmail} via ${frontendUrl}`);
+        return { success: true, provider: "https-relay", to: toEmail };
+      } else {
+        console.warn(`⚠️  [Relay Notice] HTTP Relay responded with:`, relayData);
+      }
+    } catch (relayErr) {
+      console.warn(`⚠️  [Relay Error] ${relayErr.message}. Falling back to direct providers...`);
+    }
+  }
+
   const brevoApiKey = process.env.BREVO_API_KEY;
   const sendgridApiKey = process.env.SENDGRID_API_KEY;
   const senderEmail = (process.env.BREVO_SENDER || process.env.SENDGRID_FROM || process.env.EMAIL_USER || process.env.SMTP_USER || "riyarahees136@gmail.com").trim();
   const senderName = "Gather";
 
-  // --- 1. Try Brevo HTTPS REST API (Port 443 - Never blocked by Render) ---
+  // --- 2. Try Brevo HTTPS REST API (Port 443 - Optional) ---
   if (brevoApiKey) {
     try {
       const payload = {
