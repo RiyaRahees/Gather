@@ -11,6 +11,14 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
+export function getFrontendBaseUrl() {
+  const envUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL;
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+    return envUrl.trim().replace(/\/+$/, "");
+  }
+  return "https://gather-learn.vercel.app";
+}
+
 function getTransporter() {
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
@@ -53,7 +61,7 @@ export async function sendBookingConfirmation({
   const transporter = getTransporter();
 
   const formattedAmount = isFree ? "Free Pass" : `₹${amount} (Paid via Razorpay)`;
-  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/+$/, "");
+  const frontendUrl = getFrontendBaseUrl();
   const accountUrl = `${frontendUrl}/account/bookings`;
 
   // Generate cancellation token and direct cancellation link
@@ -324,7 +332,7 @@ export async function sendBookingCancellation({
   isFree = false,
 }) {
   const transporter = getTransporter();
-  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/+$/, "");
+  const frontendUrl = getFrontendBaseUrl();
   const eventsUrl = `${frontendUrl}/events`;
 
   const emailHtml = `
@@ -465,7 +473,7 @@ export async function sendWaitlistJoinedEmail({
 }) {
   const transporter = getTransporter();
   const formattedPrice = price === 0 ? "Free Admission" : `₹${price}`;
-  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/+$/, "");
+  const frontendUrl = getFrontendBaseUrl();
   const eventUrl = `${frontendUrl}/events/${eventSlug || eventId}`;
 
   const num = parseInt(queuePosition, 10) || 1;
@@ -804,7 +812,7 @@ export async function sendWaitlistOfferEmail({
  */
 export async function sendPasswordResetEmail({ toEmail, name, otp, resetToken }) {
   const transporter = getTransporter();
-  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const frontendUrl = getFrontendBaseUrl();
   const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(toEmail)}`;
 
   console.log(`🔑 [Password Reset] Verification code for ${toEmail}: ${otp}`);

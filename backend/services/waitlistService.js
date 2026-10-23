@@ -3,7 +3,7 @@ import Waitlist from "../models/Waitlist.js";
 import Event from "../models/Event.js";
 import Booking from "../models/Booking.js";
 import User from "../models/User.js";
-import { sendWaitlistJoinedEmail, sendWaitlistOfferEmail } from "./emailService.js";
+import { sendWaitlistJoinedEmail, sendWaitlistOfferEmail, getFrontendBaseUrl } from "./emailService.js";
 
 const MAX_WAITLIST_CAPACITY = 10;
 const OFFER_DURATION_MS = 2 * 60 * 60 * 1000; // 2 hours
@@ -155,7 +155,7 @@ export async function allocateSeatIfWaitlistExists(eventId) {
   await earliestEntry.save();
 
   // 4. Send email notification asynchronously with direct claim & payment options
-  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/+$/, "");
+  const frontendUrl = getFrontendBaseUrl();
   const claimUrl = `${frontendUrl}/events/${event.slug || eventId}?claimWaitlist=${offerToken}`;
 
   sendWaitlistOfferEmail({
