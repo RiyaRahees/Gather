@@ -33,6 +33,18 @@ function NavbarContent() {
     };
   }, [userDropdownOpen]);
 
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
   const userNavLinks = [
     {
       label: "Discover",
@@ -287,76 +299,109 @@ function NavbarContent() {
         )}
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Right-Aligned Mobile Side Drawer with Dimmed Background Overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-[#E2DDD3] bg-white px-4 sm:px-6 py-5 space-y-2 shadow-xl">
-          {activeNavLinks.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className={`block px-3 py-2 rounded-xl text-base font-medium transition-colors ${
-                item.isActive
-                  ? "bg-[#073F2E] text-white font-semibold"
-                  : "text-[#171915] hover:bg-[#E7E2D8]/50"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <>
+          {/* Dimmed Background Overlay (Click outside to close) */}
+          <div
+            onClick={() => setMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 md:hidden transition-opacity duration-300"
+            aria-hidden="true"
+          />
 
-          <div className="pt-4 border-t border-[#E7E2D8] flex flex-col gap-3">
-            {((!isAdminRoute && user && user.role !== "admin" && user.email !== "admin@gmail.com") || (isAdminRoute && user && user.role === "admin")) ? (
-              <>
-                {!isAdminRoute ? (
-                  <Link
-                    href="/account"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="btn-secondary w-full py-2.5 rounded-full text-center text-sm font-semibold"
-                  >
-                    My Bookings
-                  </Link>
-                ) : (
-                  <Link
-                    href="/admin/dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="bg-[#073F2E] text-white w-full py-2.5 rounded-full text-center text-sm font-semibold"
-                  >
-                    Admin Dashboard
-                  </Link>
-                )}
+          {/* Right Slide-In Drawer */}
+          <aside
+            className="fixed top-0 right-0 bottom-0 w-[68%] sm:w-[280px] max-w-[80vw] bg-white border-l border-[#E2DDD3] z-50 shadow-2xl flex flex-col justify-between p-5 md:hidden animate-in slide-in-from-right duration-300"
+            aria-label="Mobile Navigation"
+          >
+            <div>
+              {/* Drawer Header: Logo + Close Button */}
+              <div className="flex items-center justify-between pb-4 border-b border-[#E2DDD3] mb-4">
+                <Logo size="sm" href="/" />
                 <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    logout();
-                  }}
-                  className="w-full py-2.5 text-center text-sm font-semibold text-red-600"
-                >
-                  Log out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href={isAdminRoute ? "/admin/login" : "/login"}
+                  type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="btn-secondary w-full py-2.5 rounded-full text-center text-sm font-semibold"
+                  className="p-1.5 rounded-full text-[#171915] hover:bg-black/5 transition-colors cursor-pointer"
+                  aria-label="Close menu"
                 >
-                  Log in
-                </Link>
-                {!isAdminRoute && (
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Navigation Links */}
+              <nav className="space-y-1">
+                {activeNavLinks.map((item) => (
                   <Link
-                    href="/register"
+                    key={item.label}
+                    href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="btn-forest w-full py-2.5 rounded-full text-center text-sm font-semibold"
+                    className={`block px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                      item.isActive
+                        ? "bg-[#073F2E] text-white"
+                        : "text-[#171915] hover:bg-[#E7E2D8]/50"
+                    }`}
                   >
-                    Sign Up
+                    {item.label}
                   </Link>
-                )}
-              </>
-            )}
-          </div>
-        </div>
+                ))}
+              </nav>
+            </div>
+
+            {/* Bottom Actions Cluster */}
+            <div className="pt-4 border-t border-[#E7E2D8] flex flex-col gap-2.5">
+              {((!isAdminRoute && user && user.role !== "admin" && user.email !== "admin@gmail.com") || (isAdminRoute && user && user.role === "admin")) ? (
+                <>
+                  {!isAdminRoute ? (
+                    <Link
+                      href="/account"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full py-2.5 rounded-full text-center text-xs sm:text-sm font-semibold border border-[#E7E2D8] bg-[#FAF8F5] hover:bg-white text-[#171915] shadow-2xs"
+                    >
+                      My Bookings
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/admin/dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full py-2.5 rounded-full text-center text-xs sm:text-sm font-semibold bg-[#073F2E] text-white shadow-xs"
+                    >
+                      Admin Dashboard
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full py-2 text-center text-xs sm:text-sm font-semibold text-rose-600 hover:text-rose-700 transition-colors"
+                  >
+                    Log out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href={isAdminRoute ? "/admin/login" : "/login"}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full py-2.5 rounded-full text-center text-xs sm:text-sm font-semibold border border-[#E7E2D8] bg-[#FAF8F5] hover:bg-white text-[#171915] shadow-2xs"
+                  >
+                    Log in
+                  </Link>
+                  {!isAdminRoute && (
+                    <Link
+                      href="/register"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full py-2.5 rounded-full text-center text-xs sm:text-sm font-semibold bg-[#073F2E] text-white shadow-xs"
+                    >
+                      Sign Up
+                    </Link>
+                  )}
+                </>
+              )}
+            </div>
+          </aside>
+        </>
       )}
     </header>
   );

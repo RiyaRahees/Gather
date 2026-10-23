@@ -1734,9 +1734,9 @@ export default function EventDetailPage({ params }) {
         loading={loadingTickets || loadingExistingBooking}
       />
 
-      {/* Top-Right Screen Toast Notification */}
+      {/* Responsive Toast Notification */}
       {toast && (
-        <div className="fixed top-5 right-5 z-[9999] max-w-sm w-full mx-4 sm:mx-0 animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-auto">
+        <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-6 sm:top-6 sm:max-w-sm z-[9999] animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-auto">
           <div
             className={`p-4 rounded-2xl border shadow-xl backdrop-blur-md flex items-start gap-3 ${
               toast.type === "success"
