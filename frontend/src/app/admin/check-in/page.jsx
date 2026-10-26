@@ -52,15 +52,22 @@ export default function AdminCheckInPage() {
     };
   }, []);
 
+  const getAdminHeaders = () => {
+    const adminToken =
+      (typeof window !== "undefined" ? localStorage.getItem("admintoken") : null) ||
+      (typeof window !== "undefined" ? localStorage.getItem("usertoken") : null);
+    return adminToken
+      ? {
+          "Content-Type": "application/json",
+          "x-admin-token": adminToken,
+          Authorization: `Bearer ${adminToken}`,
+        }
+      : { "Content-Type": "application/json" };
+  };
+
   const fetchBookingsForStats = async () => {
     try {
-      const adminToken =
-        (typeof window !== "undefined" ? localStorage.getItem("admintoken") : null) ||
-        (typeof window !== "undefined" ? localStorage.getItem("usertoken") : null);
-      const headers = adminToken
-        ? { "x-admin-token": adminToken, Authorization: `Bearer ${adminToken}` }
-        : {};
-      const res = await fetch("/api/admin/bookings", { headers, credentials: "include" });
+      const res = await fetch("/api/admin/bookings", { headers: getAdminHeaders(), credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         setAllBookings(data.bookings || []);
@@ -164,7 +171,7 @@ export default function AdminCheckInPage() {
     try {
       const res = await fetch("/api/tickets/admin/verify", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminHeaders(),
         credentials: "include",
         body: JSON.stringify({
           query,
@@ -192,7 +199,7 @@ export default function AdminCheckInPage() {
     try {
       const res = await fetch("/api/tickets/admin/check-in", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminHeaders(),
         credentials: "include",
         body: JSON.stringify({ ticketId }),
       });

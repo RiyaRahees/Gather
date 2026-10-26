@@ -8,6 +8,7 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/context/AuthContext";
+import { getApiUrl } from "@/lib/api";
 import {
   Calendar,
   PlusCircle,
@@ -125,18 +126,24 @@ export default function AdminEventsPage() {
     }
   }, [user, authLoading, isAdmin, searchParams]);
 
+  const getAdminHeaders = () => {
+    const adminToken =
+      (typeof window !== "undefined" ? localStorage.getItem("admintoken") : null) ||
+      (typeof window !== "undefined" ? localStorage.getItem("usertoken") : null);
+    return adminToken
+      ? {
+          "Content-Type": "application/json",
+          "x-admin-token": adminToken,
+          Authorization: `Bearer ${adminToken}`,
+        }
+      : { "Content-Type": "application/json" };
+  };
+
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const adminToken =
-        (typeof window !== "undefined" ? localStorage.getItem("admintoken") : null) ||
-        (typeof window !== "undefined" ? localStorage.getItem("usertoken") : null);
-      const headers = adminToken
-        ? { "x-admin-token": adminToken, Authorization: `Bearer ${adminToken}` }
-        : {};
-
-      const res = await fetch("/api/admin/events", {
-        headers,
+      const res = await fetch(getApiUrl("/api/admin/events"), {
+        headers: getAdminHeaders(),
         credentials: "include",
       });
       if (res.ok) {
@@ -212,12 +219,12 @@ export default function AdminEventsPage() {
     };
 
     try {
-      const url = editingEvent ? `/api/events/${editingEvent._id}` : "/api/events";
+      const endpoint = editingEvent ? `/api/events/${editingEvent._id}` : "/api/events";
       const method = editingEvent ? "PUT" : "POST";
 
-      const res = await fetch(url, {
+      const res = await fetch(getApiUrl(endpoint), {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminHeaders(),
         credentials: "include",
         body: JSON.stringify(payload),
       });
@@ -242,8 +249,9 @@ export default function AdminEventsPage() {
     setDeleteLoading(true);
 
     try {
-      const res = await fetch(`/api/events/${deleteEventState.id}`, {
+      const res = await fetch(getApiUrl(`/api/events/${deleteEventState.id}`), {
         method: "DELETE",
+        headers: getAdminHeaders(),
         credentials: "include",
       });
 
@@ -275,9 +283,9 @@ export default function AdminEventsPage() {
     setUnpublishLoading(true);
 
     try {
-      const res = await fetch(`/api/events/${deleteEventState.id}`, {
+      const res = await fetch(getApiUrl(`/api/events/${deleteEventState.id}`), {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminHeaders(),
         credentials: "include",
         body: JSON.stringify({ isPublished: false }),
       });
